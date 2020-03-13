@@ -1,14 +1,11 @@
-# --------------------------------------------------------
-# SiamMask
-# Licensed under The MIT License
-# Written by Qiang Wang (wangqiang2015 at ia.ac.cn)
-# --------------------------------------------------------
 import torch.nn as nn
 import torch
 from torch.autograd import Variable
 import math
 import torch.utils.model_zoo as model_zoo
 from models.features import Features
+from utils.log_helper import log_once
+
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152']
@@ -106,7 +103,6 @@ class Bottleneck(Features):
         out = self.relu(out)
 
         return out
-
 
 
 class Bottleneck_nop(nn.Module):
@@ -222,14 +218,20 @@ class ResNet(nn.Module):
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
-        p0 = self.relu(x)
-        x = self.maxpool(p0)
+        x = self.relu(x)
+        # print x.size()
+        x = self.maxpool(x)
+        # print x.size()
 
         p1 = self.layer1(x)
         p2 = self.layer2(p1)
         p3 = self.layer3(p2)
+        # p3 = torch.cat([p2, p3], 1)
 
-        return p0, p1, p2, p3
+        log_once("p3 {}".format(p3.size()))
+        p4 = self.layer4(p3)
+
+        return p2, p3, p4
 
 
 class ResAdjust(nn.Module):
@@ -339,6 +341,7 @@ def resnet152(pretrained=False, **kwargs):
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet152']))
     return model
+
 
 if __name__ == '__main__':
     net = resnet50()
